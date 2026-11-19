@@ -1,8 +1,7 @@
 """
 Módulo generador de datasets de puntos en 2D para evaluar algoritmos de Convex Hull.
 
-Incluye 6 distribuciones (se piden al menos 5 en el enunciado), diseñadas para
-poner a prueba los casos favorables, promedio y peores casos de Jarvis March,
+Incluye 6 distribuciones, diseñadas para poner a prueba los casos favorables, promedio y peores casos de Jarvis March,
 Andrew's Monotone Chain y Quickhull:
 
 1. uniform_square : Puntos distribuidos uniformemente en un cuadrado -> E[h] = O(log n)
@@ -24,11 +23,9 @@ def generate_uniform_square(
     seed: Optional[int] = None,
     scale: float = 1000.0
 ) -> List[Point]:
-    """
-    1. Distribución Uniforme en un Cuadrado [-scale, scale]^2.
-    Propiedad teórica: El número esperado de vértices en el Convex Hull es E[h] = O(log n).
-    Representa el caso promedio estándar con pocos vértices en la frontera.
-    """
+    
+    #1. Distribución Uniforme en un Cuadrado [-scale, scale]^2.
+    
     if n <= 0:
         return []
     rng = random.Random(seed)
@@ -44,7 +41,6 @@ def generate_uniform_disk(
     2. Distribución Uniforme dentro de un Disco de radio `radius`.
     Para muestrear uniformemente en área polar, se usa r = radius * sqrt(U(0, 1))
     y theta = U(0, 2*pi).
-    Propiedad teórica: El número esperado de vértices en el Convex Hull es E[h] = O(n^(1/3)).
     """
     if n <= 0:
         return []
@@ -66,9 +62,9 @@ def generate_large_hull_circle(
     3. Hull Grande (Puntos sobre la circunferencia de un círculo).
     Todos los puntos generados son extremos y pertenecen estrictamente al Convex Hull.
     Propiedad teórica: h = n.
-    - Es el PEOR CASO para Jarvis March: O(n * h) = O(n^2).
+    - Es el PEOR CASOoo para Jarvis March: O(n * h) = O(n^2).
     - También degrada a Quickhull porque ningún punto queda en el interior de los triángulos
-      para ser descartado tempranamente.
+      para ser descartado tempranamente al menos.
     """
     if n <= 0:
         return []
@@ -125,8 +121,7 @@ def generate_collinear_and_border(
 ) -> List[Point]:
     """
     5. Puntos Colineales en Bordes y Diagonales.
-    Distribuye los puntos exactamente sobre las 4 aristas y las 2 diagonales de un cuadrado
-    [-scale, scale]^2.
+    Distribuye los puntos exactamente sobre las 4 aristas y las 2 diagonales de un cuadrado [-scale, scale]^2.
     Propiedad teórica: h = 4, pero existen cientos/miles de puntos colineales sobre el mismo
     borde del Convex Hull y en las diagonales interiores.
     Evalúa la estabilidad numérica y el descarte correcto de vértices colineales intermedios.
@@ -170,9 +165,7 @@ def generate_parabola_curve(
     scale: float = 100.0
 ) -> List[Point]:
     """
-    6. Curva Parabólica (Bonus: Peor caso de partición asimétrica para Quickhull).
-    Puntos sobre una curva estrictamente convexa con espaciamiento geométrico/progresivo,
-    donde h = n y las particiones de Quickhull son altamente desbalanceadas.
+    6. Curva Parabólica
     """
     if n <= 0:
         return []
@@ -186,7 +179,7 @@ def generate_parabola_curve(
     return pts
 
 
-# Diccionario catálogo con todos los generadores disponibles (útil para benchmark y visualizador)
+# Diccionario catálogo (ignorar)
 DATASET_GENERATORS: Dict[str, Callable[[int, Optional[int]], List[Point]]] = {
     "uniforme_cuadrado": generate_uniform_square,
     "uniforme_disco": generate_uniform_disk,
@@ -198,7 +191,7 @@ DATASET_GENERATORS: Dict[str, Callable[[int, Optional[int]], List[Point]]] = {
 
 
 if __name__ == "__main__":
-    # Pequeña prueba de verificación de los 6 datasets con los 3 algoritmos
+    # Pequeña prueba de verificación de los 6 datasets con los algoritmos
     from algorithms import jarvis_march, andrew_monotone_chain, quickhull
 
     print("=== Verificación de los generadores de Datasets (n = 200) ===")
