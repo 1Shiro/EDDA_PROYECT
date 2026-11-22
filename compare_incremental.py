@@ -9,7 +9,9 @@
 # Cada configuración se repite REPS veces con datos distintos y se reporta
 # media y varianza muestral
 #
-# Los resultados se imprimen y se guardan en resultados/incremental_results.csv
+# Los resultados se imprimen, se guardan en resultados/incremental_results.csv
+# y se grafican en resultados/plots/ (si matplotlib está instalado): un gráfico por
+# conjunto (incremental_<conjunto>.png) y uno con ambos lado a lado (incremental.png)
 #
 # Ejecutar con: python compare_incremental.py
 
@@ -27,7 +29,10 @@ from andrew_modificado import AndrewModificado
 
 REPS = 30   # repeticiones por configuración (>= 30)
 K = 100     # puntos insertados por repetición
+SIZES = (100, 500, 1000, 2500, 5000)  # tamaños del hull inicial (n0), los mismos del benchmark
 OUTPUT_CSV = os.path.join("resultados", "incremental_results.csv")
+PLOTS_DIR = os.path.join("resultados", "plots")
+OUTPUT_PNG = os.path.join(PLOTS_DIR, "incremental.png")
 
 
 # Uniforme en un cuadrado: hull pequeño, casi todo es interior
@@ -87,8 +92,10 @@ def run_config(name: str, gen: Callable, n0: int) -> Dict[str, object]:
         "reps": REPS,
         "incremental_mean_ms": m_inc,
         "incremental_variance_ms2": v_inc,
+        "incremental_std_ms": math.sqrt(v_inc),
         "scratch_mean_ms": m_scr,
         "scratch_variance_ms2": v_scr,
+        "scratch_std_ms": math.sqrt(v_scr),
         "speedup": m_scr / m_inc,
     }
 
@@ -104,11 +111,67 @@ def save_csv(rows: List[Dict[str, object]]) -> None:
     print(f"Resultados guardados en: {OUTPUT_CSV}")
 
 
+# plot_dataset
+# dibuja en `ax` el tiempo de agregar K puntos según n0 para ambos métodos de un conjunto,
+# con barras de desviación estándar y escala logarítmica en el tiempo
+def plot_dataset(ax, rows: List[Dict[str, object]], ds: str, title: str) -> None:
+    data = sorted((r for r in rows if r["dataset"] == ds), key=lambda r: r["n0"])
+    ns = [r["n0"] for r in data]
+    ax.errorbar(ns, [r["scratch_mean_ms"] for r in data],
+                yerr=[r["scratch_std_ms"] for r in data],
+                marker="o", capsize=4, linewidth=1.8, label="Andrew desde cero")
+    ax.errorbar(ns, [r["incremental_mean_ms"] for r in data],
+                yerr=[r["incremental_std_ms"] for r in data],
+                marker="s", capsize=4, linewidth=1.8, label="Andrew Modificado")
+    ax.set_title(title)
+    ax.set_xlabel("Puntos del hull inicial ($n_0$)")
+    ax.set_yscale("log")
+    ax.grid(True, which="both", linestyle="--", alpha=0.4)
+    ax.legend()
+
+
+# save_plot
+# guarda un gráfico por conjunto y uno con todos los conjuntos lado a lado
+def save_plot(rows: List[Dict[str, object]]) -> None:
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("[INFO] matplotlib no está instalado, no se genera el gráfico")
+        return
+
+    titles = {"uniforme": "Uniforme en cuadrado", "circunferencia": "Circunferencia"}
+    ylabel = f"Tiempo de agregar {K} puntos (ms, escala log)"
+    datasets = list(dict.fromkeys(r["dataset"] for r in rows))
+    os.makedirs(PLOTS_DIR, exist_ok=True)
+
+    # 1. Un gráfico por conjunto
+    for ds in datasets:
+        fig, ax = plt.subplots(figsize=(7, 4.5))
+        plot_dataset(ax, rows, ds, f"Inserción vs recalcular — {titles.get(ds, ds)}")
+        ax.set_ylabel(ylabel)
+        plt.tight_layout()
+        out = os.path.join(PLOTS_DIR, f"incremental_{ds}.png")
+        plt.savefig(out, dpi=200)
+        plt.close()
+        print(f"Gráfico guardado en: {out}")
+
+    # 2. Todos los conjuntos lado a lado
+    fig, axes = plt.subplots(1, len(datasets), figsize=(12, 4.5), sharey=True)
+    for ax, ds in zip(axes, datasets):
+        plot_dataset(ax, rows, ds, titles.get(ds, ds))
+    axes[0].set_ylabel(ylabel)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_PNG, dpi=200)
+    plt.close()
+    print(f"Gráfico guardado en: {OUTPUT_PNG}")
+
+
 if __name__ == "__main__":
     print(f"Tiempo total de insertar K={K} puntos (REPS={REPS} repeticiones por fila)")
     rows = []
-    for n0 in (1000, 5000):
+    for n0 in SIZES:
         rows.append(run_config("uniforme", gen_uniform, n0))
-    for n0 in (1000, 5000):
+    for n0 in SIZES:
         rows.append(run_config("circunferencia", gen_circle, n0))
     save_csv(rows)
+    save_plot(rows)
