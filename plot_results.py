@@ -12,6 +12,16 @@ DATASET_TITLES: Dict[str, str] = {
     "curva_parabola": "Curva Parabólica ($h = n$, partición asimétrica)",
 }
 
+# Títulos cortos para la figura resumen (con tildes).
+SHORT_TITLES: Dict[str, str] = {
+    "uniforme_cuadrado": "Uniforme en cuadrado",
+    "uniforme_disco": "Uniforme en disco",
+    "hull_grande_circulo": "Hull grande (circunferencia)",
+    "hull_chico_cuadrado": "Hull chico (cuadrado)",
+    "colineales_bordes": "Colineales",
+    "curva_parabola": "Curva parabólica",
+}
+
 ALGO_ORDER = [
     "Jarvis March",
     "Andrew Monotone Chain",
@@ -153,10 +163,13 @@ def generate_plots(rows: List[Dict[str, str]], plots_dir: str) -> None:
                 label=algo,
             )
 
-        plt.title(f"Tiempo de ejecución vs $n$ — {ds}")
+        plt.title(f"Tiempo de ejecución vs $n$ — {DATASET_TITLES.get(ds, ds)}", fontsize=10)
         plt.xlabel("Número de puntos ($n$)")
-        plt.ylabel("Tiempo medio de ejecución (ms)")
-        plt.grid(True, linestyle="--", alpha=0.5)
+        plt.ylabel("Tiempo medio de ejecución (ms, escala log)")
+        # Escala logarítmica: Jarvis puede ser ~1000 veces más lento que los
+        # otros dos y, en escala lineal, Andrew y Quickhull quedan pegados al 0.
+        plt.yscale("log")
+        plt.grid(True, which="both", linestyle="--", alpha=0.4)
         plt.legend()
         plt.tight_layout()
 
@@ -189,10 +202,11 @@ def generate_plots(rows: List[Dict[str, str]], plots_dir: str) -> None:
                 linewidth=1.6,
                 label=algo,
             )
-        ax.set_title(ds.replace("_", " ").title())
+        ax.set_title(SHORT_TITLES.get(ds, ds.replace("_", " ")))
         ax.set_xlabel("$n$")
-        ax.set_ylabel("Tiempo (ms)")
-        ax.grid(True, linestyle="--", alpha=0.5)
+        ax.set_ylabel("Tiempo (ms, escala log)")
+        ax.set_yscale("log")
+        ax.grid(True, which="both", linestyle="--", alpha=0.4)
         ax.legend(fontsize=8)
 
     plt.tight_layout()
