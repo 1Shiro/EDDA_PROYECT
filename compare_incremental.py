@@ -82,7 +82,7 @@ def run_config(name: str, gen: Callable, n0: int) -> Dict[str, object]:
 
     m_inc, v_inc = statistics.mean(inc_ms), statistics.variance(inc_ms)
     m_scr, v_scr = statistics.mean(scr_ms), statistics.variance(scr_ms)
-    print(f"{name:<15} n0={n0:<6} | incremental: media={m_inc:10.4f} ms  var={v_inc:10.6f} ms^2"
+    print(f"  {name:<15} n0={n0:<6} | incremental: media={m_inc:10.4f} ms  var={v_inc:10.6f} ms^2"
           f" | desde cero: media={m_scr:10.3f} ms  var={v_scr:10.3f} ms^2"
           f" | razón={m_scr / m_inc:8.1f}x")
     return {
@@ -108,7 +108,7 @@ def save_csv(rows: List[Dict[str, object]]) -> None:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
-    print(f"Resultados guardados en: {OUTPUT_CSV}")
+    print(f"  resultados en {OUTPUT_CSV}")
 
 
 # plot_dataset
@@ -136,7 +136,7 @@ def save_plot(rows: List[Dict[str, object]]) -> None:
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        print("[INFO] matplotlib no está instalado, no se genera el gráfico")
+        print("  matplotlib no está instalado, no se genera el gráfico")
         return
 
     titles = {"uniforme": "Uniforme en cuadrado", "circunferencia": "Circunferencia"}
@@ -153,7 +153,7 @@ def save_plot(rows: List[Dict[str, object]]) -> None:
         out = os.path.join(PLOTS_DIR, f"incremental_{ds}.png")
         plt.savefig(out, dpi=200)
         plt.close()
-        print(f"Gráfico guardado en: {out}")
+        print(f"  gráfico en {out}")
 
     # 2. Todos los conjuntos lado a lado
     fig, axes = plt.subplots(1, len(datasets), figsize=(12, 4.5), sharey=True)
@@ -163,11 +163,11 @@ def save_plot(rows: List[Dict[str, object]]) -> None:
     plt.tight_layout()
     plt.savefig(OUTPUT_PNG, dpi=200)
     plt.close()
-    print(f"Gráfico guardado en: {OUTPUT_PNG}")
+    print(f"  gráfico en {OUTPUT_PNG}")
 
 
 if __name__ == "__main__":
-    print(f"Tiempo total de insertar K={K} puntos (REPS={REPS} repeticiones por fila)")
+    print(f"  tiempo total de insertar K={K} puntos (REPS={REPS} repeticiones por fila)")
     rows = []
     for n0 in SIZES:
         rows.append(run_config("uniforme", gen_uniform, n0))

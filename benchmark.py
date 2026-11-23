@@ -72,14 +72,11 @@ def run_benchmarks(
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
     rows: List[Dict[str, object]] = []
 
-    print("=" * 95)
-    print(f"inciando prueba en 2d ({repetitions} repeticiones por configuración)")
-    print(f"Tamaños de muestra (n): {sizes}")
-    print(f"Datasets a evaluar    : {list(DATASET_GENERATORS.keys())}")
-    print("=" * 95)
+    print(f"  {repetitions} repeticiones por configuración")
+    print(f"  tamaños (n): {sizes}")
 
     for dataset_name, gen_fn in DATASET_GENERATORS.items():
-        print(f"\n>>> Dataset: {dataset_name}")
+        print(f"\n  -> {dataset_name}")
         print(
             f"{'n':>7} | {'Algoritmo':<23} | {'h (media)':>9} | "
             f"{'Media (ms)':>12} | {'Varianza (ms²)':>16} | {'Desv.Est (ms)':>13}"
@@ -145,9 +142,7 @@ def run_benchmarks(
         writer.writeheader()
         writer.writerows(rows)
 
-    print("\n" + "=" * 95)
-    print(f"Benchmark finalizado. Resultados guardados en: {output_csv}")
-    print("=" * 95)
+    print(f"\n  resultados en {output_csv}")
     return rows
 
 

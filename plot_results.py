@@ -108,7 +108,7 @@ def generate_latex_tables(rows: List[Dict[str, str]], out_tex_path: str) -> None
     with open(out_tex_path, mode="w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
-    print(f"[OK] Tablas en LaTeX guardadas en: {out_tex_path}")
+    print(f"  tablas LaTeX en {out_tex_path}")
 
 
 def generate_plots(rows: List[Dict[str, str]], plots_dir: str) -> None:
@@ -118,10 +118,7 @@ def generate_plots(rows: List[Dict[str, str]], plots_dir: str) -> None:
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        print(
-            "[INFO] `matplotlib` no está instalado. Si deseas generar los gráficos PNG/PDF, "
-            "instálalo con: pip install matplotlib"
-        )
+        print("  matplotlib no está instalado, no se generan los gráficos")
         return
 
     os.makedirs(plots_dir, exist_ok=True)
@@ -176,7 +173,7 @@ def generate_plots(rows: List[Dict[str, str]], plots_dir: str) -> None:
         out_png = os.path.join(plots_dir, f"benchmark_{ds}.png")
         plt.savefig(out_png, dpi=200)
         plt.close()
-        print(f"[OK] Gráfico guardado en: {out_png}")
+        print(f"  gráfico en {out_png}")
 
     # 2. Figura resumen con todos los datasets en una grilla 2x3
     datasets_list = list(grouped.keys())
@@ -213,7 +210,7 @@ def generate_plots(rows: List[Dict[str, str]], plots_dir: str) -> None:
     summary_png = os.path.join(plots_dir, "benchmark_resumen_todos.png")
     plt.savefig(summary_png, dpi=200)
     plt.close()
-    print(f"[OK] Figura resumen guardada en: {summary_png}")
+    print(f"  resumen en {summary_png}")
 
 
 if __name__ == "__main__":
