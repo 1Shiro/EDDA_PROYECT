@@ -19,37 +19,37 @@
 import csv
 import math
 import os
-import random
 import statistics
 import time
 from typing import Callable, Dict, List
 
 from algorithms import Point, andrew_monotone_chain
 from andrew_modificado import AndrewModificado
+from datasets import generate_large_hull_circle, generate_uniform_square
 
 REPS = 30   # repeticiones por configuración (>= 30)
-K = 100     # puntos insertados por repetición
+K = 100     # puntos insertados por repetición, una sola inserción dura muy poco para medirla sola
 SIZES = (100, 500, 1000, 2500, 5000)  # tamaños del hull inicial (n0), los mismos del benchmark
 OUTPUT_CSV = os.path.join("resultados", "incremental_results.csv")
 PLOTS_DIR = os.path.join("resultados", "plots")
 OUTPUT_PNG = os.path.join(PLOTS_DIR, "incremental.png")
 
 
-# Uniforme en un cuadrado: hull pequeño, casi todo es interior
-def gen_uniform(rng: random.Random, n: int) -> List[Point]:
-    return [(rng.uniform(-100, 100), rng.uniform(-100, 100)) for _ in range(n)]
-
-
-# Sobre una circunferencia: peor caso para el incremental (h cercano a n)
-def gen_circle(rng: random.Random, n: int) -> List[Point]:
-    angles = [rng.uniform(0, 2 * math.pi) for _ in range(n)]
-    return [(math.cos(a) * 100, math.sin(a) * 100) for a in angles]
+# Los conjuntos de puntos son los mismos de datasets.py que usa el benchmark:
+#       - uniforme (generate_uniform_square): hull pequeño, casi todo es interior,
+#         la mayoría de los puntos nuevos cae dentro y el incremental no hace nada
+#       - circunferencia (generate_large_hull_circle): peor caso para el incremental (h = n),
+#         todos los puntos nuevos quedan en el hull y hay que agregarlos a la lista
 
 
 # time_incremental
 # segundos que toma insertar los puntos nuevos uno a uno en un hull ya construido
 def time_incremental(base: List[Point], new: List[Point]) -> float:
-    ih = AndrewModificado(base)  # fuera del cronómetro
+
+    # el hull inicial se construye antes de partir el cronómetro,
+    # porque lo que se compara es solo el costo de agregar puntos
+    ih = AndrewModificado(base)
+
     t0 = time.perf_counter()
     for p in new:
         ih.insertar(p)
@@ -59,9 +59,14 @@ def time_incremental(base: List[Point], new: List[Point]) -> float:
 # time_from_scratch
 # segundos que toma recalcular el hull completo después de cada punto nuevo
 def time_from_scratch(base: List[Point], new: List[Point]) -> float:
-    pts = list(base)  # fuera del cronómetro
+
+    # copia para no modificar la lista base, que también usa time_incremental
+    pts = list(base)
+
     t0 = time.perf_counter()
     for p in new:
+        # se recalcula después de cada punto para tener el hull al día,
+        # igual que en el incremental
         pts.append(p)
         andrew_monotone_chain(pts)
     return time.perf_counter() - t0
@@ -74,14 +79,22 @@ def run_config(name: str, gen: Callable, n0: int) -> Dict[str, object]:
     inc_ms: List[float] = []
     scr_ms: List[float] = []
     for rep in range(REPS):
-        rng = random.Random(rep)
-        pts = gen(rng, n0 + K)
+
+        # se generan n0 + K puntos y se separan: los primeros n0 son el hull inicial
+        # y los K restantes son los que se insertan
+        # semilla = número de repetición, así cada repetición usa puntos distintos
+        # pero el experimento completo siempre da los mismos puntos
+        pts = gen(n0 + K, rep)
         base, new = pts[:n0], pts[n0:]
+
+        # ambos métodos usan exactamente los mismos puntos, así la comparación es justa
         inc_ms.append(time_incremental(base, new) * 1000)
         scr_ms.append(time_from_scratch(base, new) * 1000)
 
     m_inc, v_inc = statistics.mean(inc_ms), statistics.variance(inc_ms)
     m_scr, v_scr = statistics.mean(scr_ms), statistics.variance(scr_ms)
+
+    # razón = cuántas veces más lento es recalcular que insertar
     print(f"  {name:<15} n0={n0:<6} | incremental: media={m_inc:10.4f} ms  var={v_inc:10.6f} ms^2"
           f" | desde cero: media={m_scr:10.3f} ms  var={v_scr:10.3f} ms^2"
           f" | razón={m_scr / m_inc:8.1f}x")
@@ -114,6 +127,7 @@ def save_csv(rows: List[Dict[str, object]]) -> None:
 # plot_dataset
 # dibuja en `ax` el tiempo de agregar K puntos según n0 para ambos métodos de un conjunto,
 # con barras de desviación estándar y escala logarítmica en el tiempo
+# (log porque los dos métodos difieren en varios órdenes de magnitud)
 def plot_dataset(ax, rows: List[Dict[str, object]], ds: str, title: str) -> None:
     data = sorted((r for r in rows if r["dataset"] == ds), key=lambda r: r["n0"])
     ns = [r["n0"] for r in data]
@@ -133,6 +147,8 @@ def plot_dataset(ax, rows: List[Dict[str, object]], ds: str, title: str) -> None
 # save_plot
 # guarda un gráfico por conjunto y uno con todos los conjuntos lado a lado
 def save_plot(rows: List[Dict[str, object]]) -> None:
+
+    # matplotlib es opcional: sin él igual se guardan el CSV y lo impreso
     try:
         import matplotlib.pyplot as plt
     except ImportError:
@@ -141,7 +157,7 @@ def save_plot(rows: List[Dict[str, object]]) -> None:
 
     titles = {"uniforme": "Uniforme en cuadrado", "circunferencia": "Circunferencia"}
     ylabel = f"Tiempo de agregar {K} puntos (ms, escala log)"
-    datasets = list(dict.fromkeys(r["dataset"] for r in rows))
+    datasets = list(dict.fromkeys(r["dataset"] for r in rows))  # conjuntos sin repetir, en orden
     os.makedirs(PLOTS_DIR, exist_ok=True)
 
     # 1. Un gráfico por conjunto
@@ -155,7 +171,7 @@ def save_plot(rows: List[Dict[str, object]]) -> None:
         plt.close()
         print(f"  gráfico en {out}")
 
-    # 2. Todos los conjuntos lado a lado
+    # 2. Todos los conjuntos lado a lado, con el mismo eje y para poder compararlos
     fig, axes = plt.subplots(1, len(datasets), figsize=(12, 4.5), sharey=True)
     for ax, ds in zip(axes, datasets):
         plot_dataset(ax, rows, ds, titles.get(ds, ds))
@@ -169,9 +185,11 @@ def save_plot(rows: List[Dict[str, object]]) -> None:
 if __name__ == "__main__":
     print(f"  tiempo total de insertar K={K} puntos (REPS={REPS} repeticiones por fila)")
     rows = []
+
+    # primero todos los tamaños del conjunto uniforme y después los de la circunferencia
     for n0 in SIZES:
-        rows.append(run_config("uniforme", gen_uniform, n0))
+        rows.append(run_config("uniforme", generate_uniform_square, n0))
     for n0 in SIZES:
-        rows.append(run_config("circunferencia", gen_circle, n0))
+        rows.append(run_config("circunferencia", generate_large_hull_circle, n0))
     save_csv(rows)
     save_plot(rows)
