@@ -9,7 +9,7 @@ DATASET_TITLES: Dict[str, str] = {
     "hull_grande_circulo": "Hull Grande — Circunferencia ($h = n$)",
     "hull_chico_cuadrado": "Hull Chico — Cuadrado con Interior ($h = 4$)",
     "colineales_bordes": "Puntos Colineales en Bordes y Diagonales ($h = 4$)",
-    "curva_parabola": "Curva Parabólica ($h = n$, partición asimétrica)",
+    "curva_parabola": "Curva Parabólica ($h = n$)",
 }
 
 # Títulos cortos para la figura resumen (con tildes).
